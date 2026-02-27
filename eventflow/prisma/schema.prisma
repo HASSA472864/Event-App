@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+enum RegistrationStatus {
+  PENDING
+  CONFIRMED
+  WAITLISTED
+  CANCELLED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  avatar        String?
+  role          Role      @default(USER)
+  onboarded     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  events        Event[]
+  registrations Registration[]
+  coOrganizing  CoOrganizer[]
+  notifications Notification[]
+}
+
+model Category {
+  id     String  @id @default(cuid())
+  name   String
+  color  String
+  icon   String
+  events Event[]
+}
+
+model Event {
+  id            String      @id @default(cuid())
+  title         String
+  slug          String      @unique
+  description   String      @db.Text
+  coverImage    String?
+  startDate     DateTime
+  endDate       DateTime
+  timezone      String      @default("UTC")
+  location      String?
+  latitude      Float?
+  longitude     Float?
+  isVirtual     Boolean     @default(false)
+  meetingUrl    String?
+  status        EventStatus @default(DRAFT)
+  capacity      Int?
+  isRecurring   Boolean     @default(false)
+  recurringRule String?
+  categoryId    String?
+  organizerId   String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  organizer     User          @relation(fields: [organizerId], references: [id])
+  category      Category?     @relation(fields: [categoryId], references: [id])
+  tickets       Ticket[]
+  registrations Registration[]
+  coOrganizers  CoOrganizer[]
+  invitations   Invitation[]
+  reminders     Reminder[]
+  analytics     EventAnalytics?
+  discountCodes DiscountCode[]
+}
+
+model Ticket {
+  id            String   @id @default(cuid())
+  eventId       String
+  name          String
+  description   String?
+  price         Float    @default(0)
+  quantity      Int?
+  sold          Int      @default(0)
+  salesStart    DateTime?
+  salesEnd      DateTime?
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+}
+
+model Registration {
+  id              String             @id @default(cuid())
+  eventId         String
+  userId          String
+  ticketId        String?
+  status          RegistrationStatus @default(PENDING)
+  qrCode          String             @unique @default(uuid())
+  checkedIn       Boolean            @default(false)
+  checkedInAt     DateTime?
+  stripePaymentId String?
+  createdAt       DateTime           @default(now())
+  event           Event              @relation(fields: [eventId], references: [id])
+  user            User               @relation(fields: [userId], references: [id])
+  ticket          Ticket?            @relation(fields: [ticketId], references: [id])
+}
+
+model Invitation {
+  id        String           @id @default(cuid())
+  eventId   String
+  email     String
+  status    InvitationStatus @default(PENDING)
+  token     String           @unique @default(uuid())
+  sentAt    DateTime         @default(now())
+  event     Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model CoOrganizer {
+  id      String @id @default(cuid())
+  eventId String
+  userId  String
+  role    String @default("viewer")
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id])
+  @@unique([eventId, userId])
+}
+
+model Reminder {
+  id          String   @id @default(cuid())
+  eventId     String
+  type        String
+  scheduledAt DateTime
+  sent        Boolean  @default(false)
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model EventAnalytics {
+  id             String  @id @default(cuid())
+  eventId        String  @unique
+  pageViews      Int     @default(0)
+  totalRevenue   Float   @default(0)
+  conversionRate Float   @default(0)
+  event          Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model DiscountCode {
+  id         String    @id @default(cuid())
+  eventId    String
+  code       String    @unique
+  discount   Float
+  isPercent  Boolean   @default(true)
+  usageLimit Int?
+  usedCount  Int       @default(0)
+  expiresAt  DateTime?
+  event      Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
