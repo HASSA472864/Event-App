@@ -284,7 +284,7 @@ function LoadingSkeleton() {
 
 export default function PublicEventPage() {
   const params = useParams()
-  const slug = params.slug as string
+  const slug = params.id as string
 
   const [event, setEvent] = useState<EventDetail | null>(null)
   const [loading, setLoading] = useState(true)
