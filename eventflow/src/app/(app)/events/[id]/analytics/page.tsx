@@ -266,7 +266,7 @@ export default function EventAnalyticsPage() {
                   outerRadius={90}
                   paddingAngle={3}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={((props: Record<string, unknown>) => `${props.name} ${(((props.percent as number) ?? 0) * 100).toFixed(0)}%`) as any}
                 >
                   {pieData.map((_, index) => (
                     <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
