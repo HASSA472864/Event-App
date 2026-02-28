@@ -5,9 +5,11 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import Stripe from "stripe"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2026-01-28.clover",
-})
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+    apiVersion: "2026-01-28.clover",
+  })
+}
 
 const registerSchema = z.object({
   eventId: z.string(),
@@ -94,7 +96,7 @@ export async function POST(req: Request) {
     return NextResponse.json(registration, { status: 201 })
   }
 
-  const checkoutSession = await stripe.checkout.sessions.create({
+  const checkoutSession = await getStripe().checkout.sessions.create({
     payment_method_types: ["card"],
     mode: "payment",
     customer_email: session.user.email || undefined,
