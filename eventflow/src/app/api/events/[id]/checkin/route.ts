@@ -5,15 +5,16 @@ import { prisma } from "@/lib/prisma"
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const event = await prisma.event.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { organizerId: true, title: true },
   })
 
@@ -30,7 +31,7 @@ export async function POST(
   const registration = await prisma.registration.findFirst({
     where: {
       qrCode,
-      eventId: params.id,
+      eventId: id,
     },
     include: {
       user: { select: { name: true, email: true, avatar: true } },

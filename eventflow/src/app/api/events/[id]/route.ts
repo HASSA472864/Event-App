@@ -7,9 +7,9 @@ import { z } from "zod"
 // GET /api/events/[id] — Returns full event with tickets, organizer, category, registration count
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params
+  const { id } = await params
 
   const event = await prisma.event.findUnique({
     where: { id },
@@ -66,14 +66,14 @@ const updateEventSchema = z.object({
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { id } = params
+  const { id } = await params
 
   // Verify ownership
   const existing = await prisma.event.findUnique({
@@ -120,14 +120,14 @@ export async function PATCH(
 // DELETE /api/events/[id] — Delete event (owner only)
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { id } = params
+  const { id } = await params
 
   const existing = await prisma.event.findUnique({
     where: { id },

@@ -5,15 +5,16 @@ import { prisma } from "@/lib/prisma"
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const event = await prisma.event.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       analytics: true,
       tickets: true,

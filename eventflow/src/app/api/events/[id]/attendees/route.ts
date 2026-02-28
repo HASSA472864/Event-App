@@ -5,15 +5,16 @@ import { prisma } from "@/lib/prisma"
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: eventId } = await params
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const event = await prisma.event.findUnique({
-    where: { id: params.id },
+    where: { id: eventId },
     select: { organizerId: true },
   })
 
@@ -26,7 +27,7 @@ export async function GET(
   const search = searchParams.get("search")
   const checkedIn = searchParams.get("checkedIn")
 
-  const where: any = { eventId: params.id }
+  const where: any = { eventId }
   if (status) where.status = status
   if (checkedIn === "true") where.checkedIn = true
   if (checkedIn === "false") where.checkedIn = false
@@ -50,12 +51,12 @@ export async function GET(
 
   const stats = await prisma.registration.groupBy({
     by: ["status"],
-    where: { eventId: params.id },
+    where: { eventId },
     _count: true,
   })
 
   const checkedInCount = await prisma.registration.count({
-    where: { eventId: params.id, checkedIn: true },
+    where: { eventId, checkedIn: true },
   })
 
   return NextResponse.json({
@@ -72,15 +73,16 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: eventId } = await params
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const event = await prisma.event.findUnique({
-    where: { id: params.id },
+    where: { id: eventId },
     select: { organizerId: true },
   })
 

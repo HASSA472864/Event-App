@@ -5,9 +5,9 @@ import { prisma } from "@/lib/prisma"
 // Returns published event details by slug
 export async function GET(
   req: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = params
+  const { slug } = await params
 
   const event = await prisma.event.findUnique({
     where: { slug },
