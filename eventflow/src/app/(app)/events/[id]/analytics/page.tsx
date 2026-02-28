@@ -234,7 +234,7 @@ export default function EventAnalyticsPage() {
                 <Tooltip
                   contentStyle={{ backgroundColor: "#1E293B", border: "1px solid #334155", borderRadius: "8px" }}
                   labelStyle={{ color: "#F1F5F9" }}
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Revenue"]}
+                  formatter={(value: number | undefined) => [`$${(value ?? 0).toFixed(2)}`, "Revenue"]}
                 />
                 <Bar dataKey="amount" fill="#10B981" radius={[4, 4, 0, 0]} />
               </BarChart>
