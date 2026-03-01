@@ -36,28 +36,46 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const body = await req.json()
-  const parsed = createEventSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+  try {
+    const body = await req.json()
+    const parsed = createEventSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: { message: "Validation failed", details: parsed.error.flatten() } }, { status: 400 })
+    }
+
+    const { tickets, categoryId, ...eventData } = parsed.data
+
+    // Only set categoryId if a matching Category row exists in the DB
+    let validCategoryId: string | undefined = undefined
+    if (categoryId) {
+      const cat = await prisma.category.findUnique({ where: { id: categoryId } })
+      if (cat) {
+        validCategoryId = cat.id
+      }
+    }
+
+    const event = await prisma.event.create({
+      data: {
+        ...eventData,
+        categoryId: validCategoryId,
+        slug: slugify(eventData.title),
+        organizerId: session.user.id,
+        startDate: new Date(eventData.startDate),
+        endDate: new Date(eventData.endDate),
+        tickets: { create: tickets },
+        analytics: { create: {} },
+      },
+      include: { tickets: true },
+    })
+
+    return NextResponse.json(event, { status: 201 })
+  } catch (error) {
+    console.error("Event creation error:", error)
+    return NextResponse.json(
+      { error: { message: error instanceof Error ? error.message : "Failed to create event" } },
+      { status: 500 }
+    )
   }
-
-  const { tickets, ...eventData } = parsed.data
-
-  const event = await prisma.event.create({
-    data: {
-      ...eventData,
-      slug: slugify(eventData.title),
-      organizerId: session.user.id,
-      startDate: new Date(eventData.startDate),
-      endDate: new Date(eventData.endDate),
-      tickets: { create: tickets },
-      analytics: { create: {} },
-    },
-    include: { tickets: true },
-  })
-
-  return NextResponse.json(event, { status: 201 })
 }
 
 export async function GET(req: Request) {

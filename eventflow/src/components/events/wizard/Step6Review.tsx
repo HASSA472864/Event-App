@@ -132,8 +132,14 @@ export function Step6Review() {
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error?.message || "Failed to create event")
+        let message = "Failed to create event"
+        try {
+          const data = await res.json()
+          message = data.error?.message || message
+        } catch {
+          // Response body was not valid JSON
+        }
+        throw new Error(message)
       }
 
       setSuccess(true)
