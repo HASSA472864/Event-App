@@ -21,7 +21,13 @@ import StarterKit from "@tiptap/starter-kit"
 import TiptapLink from "@tiptap/extension-link"
 import TiptapImage from "@tiptap/extension-image"
 import { useCallback, useState } from "react"
-import { CldUploadWidget } from "next-cloudinary"
+
+const CLOUDINARY_CONFIGURED = !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+
+let CldUploadWidget: any = null
+if (CLOUDINARY_CONFIGURED) {
+  CldUploadWidget = require("next-cloudinary").CldUploadWidget
+}
 
 function TiptapToolbar({ editor }: { editor: any }) {
   if (!editor) return null
@@ -109,6 +115,7 @@ function TiptapToolbar({ editor }: { editor: any }) {
 export function Step2Details() {
   const { formData, updateFormData, stepValidation } = useWizard()
   const [uploadError, setUploadError] = useState("")
+  const [imageUrlInput, setImageUrlInput] = useState("")
 
   const editor = useEditor({
     extensions: [
@@ -208,7 +215,7 @@ export function Step2Details() {
                 <X className="h-4 w-4" />
               </Button>
             </div>
-          ) : (
+          ) : CLOUDINARY_CONFIGURED && CldUploadWidget ? (
             <CldUploadWidget
               uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "eventflow"}
               onSuccess={handleUploadSuccess}
@@ -236,7 +243,7 @@ export function Step2Details() {
                 },
               }}
             >
-              {({ open }) => (
+              {({ open }: { open: () => void }) => (
                 <button
                   type="button"
                   onClick={() => open()}
@@ -256,6 +263,39 @@ export function Step2Details() {
                 </button>
               )}
             </CldUploadWidget>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={imageUrlInput}
+                  onChange={(e) => setImageUrlInput(e.target.value)}
+                  placeholder="Paste image URL (e.g. https://example.com/image.jpg)"
+                  className="flex-1 rounded-lg border border-slate-700/50 bg-slate-800/50 px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-slate-700/50 bg-slate-800/50 hover:bg-violet-500/20 hover:border-violet-500/50 text-slate-300"
+                  onClick={() => {
+                    if (imageUrlInput.trim()) {
+                      updateFormData({ coverImage: imageUrlInput.trim() })
+                      setImageUrlInput("")
+                    }
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+              <div className="w-full h-36 rounded-xl border-2 border-dashed border-slate-700/50 bg-slate-800/30 flex flex-col items-center justify-center gap-2">
+                <div className="p-3 rounded-full bg-slate-700/50">
+                  <ImagePlus className="h-6 w-6 text-slate-400" />
+                </div>
+                <p className="text-xs text-slate-500">
+                  Enter an image URL above to set a cover image
+                </p>
+              </div>
+            </div>
           )}
           {uploadError && <p className="text-sm text-red-400">{uploadError}</p>}
           <p className="text-xs text-slate-500">
